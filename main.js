@@ -77,7 +77,7 @@ socket.on('connect', function() {
 			socket.emit("chat_message", room, "Hi! I'm a bot. Type `help` for help.");
 			break;
 		case "test":
-			socket.emit("set_custom_options", opt.options.custom, {map: "Blank", game_speed: 1});
+			socket.emit("set_custom_options", opt.options.custom, {map: "Blank", game_speed: 4});
 			socket.emit('set_force_start', opt.options.custom, true);
 			break;
 		case "force":

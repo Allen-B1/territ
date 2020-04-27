@@ -1,6 +1,7 @@
 {
 	"dependencies": {
 		"socket.io-client": "2.3.0",
-		"node-getopt": "0.3.2"
+		"node-getopt": "0.3.2",
+		"flatqueue": "1.2.0"
 	}
 }

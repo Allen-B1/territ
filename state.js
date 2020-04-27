@@ -1,10 +1,12 @@
+const FlatQueue = require("flatqueue");
+
 const TILE_EMPTY = -1;
 const TILE_MOUNTAIN  = -2;
 
 class State {
 	constructor(playerIndex) {
 		this.playerIndex = playerIndex;
-		this.objectives = [];
+		this.objectives = new FlatQueue();
 		this.start = false;
 	}
 
@@ -15,6 +17,7 @@ class State {
 
 		if (!this.start) return;
 
+		// Conquer cities or other players
 		for (var i = 0; i < data.width * data.height; i++) {
 			if (data.terrain[i] == this.playerIndex && data.armies[i] > 1) {
 				let adjacents = adjacentTiles(i, data.width, data.height);
@@ -25,6 +28,7 @@ class State {
 			}
 		}
 
+		// Expand
 		for (var i = 0; i < data.width * data.height; i++) {
 			if (data.terrain[i] == this.playerIndex && data.armies[i] > 1) {
 				let adjacents = adjacentTiles(i, data.width, data.height);
@@ -35,41 +39,36 @@ class State {
 			}
 		}
 
-		let hasCity = false;
-		for (var obj in this.objectives) {
-			if (obj.source == data.generals[this.playerIndex]) {
-				hasCity = true;
+		for (var i = 0; i < data.width * data.height; i++) {
+			if (data.terrain[i] == this.playerIndex && data.armies[i] > 1) {
+				let adjacents = adjacentTiles(i, data.width, data.height);
+				let adj = adjacents.find(tile => (data.cities.indexOf(tile) != -1 && data.armies[data.generals[this.playerIndex]] > data.armies[tile] && data.terrain[tile] != this.playerIndex));
+				if (adj != undefined) {
+					let getCity = new Move(data.generals[this.playerIndex], adj, "Conquering City");
+					console.log(getCity.toString());
+					this.objectives.push(getCity, 1);
+					break;
+				}
 			}
 		}
 
-		if (!hasCity)
-			for (var i = 0; i < data.width * data.height; i++) {
-				if (data.terrain[i] == this.playerIndex && data.armies[i] > 1) {
-					let adjacents = adjacentTiles(i, data.width, data.height);
-					let adj = adjacents.find(tile => (data.cities.indexOf(tile) != -1 && data.armies[data.generals[this.playerIndex]] > data.armies[tile] && data.terrain[tile] != this.playerIndex));
-					if (adj != undefined) {
-						let getCity = new Move(data.generals[this.playerIndex], adj, "Conquering City");
-						console.log(getCity.toString());
-						this.objectives.push(getCity);
-						break;
-					}
-				}
-			}
-
-		if (this.objectives.length == 0) {
+		if (this.objectives.peek() === undefined) {
 			let max = data.armies.reduce((acc, armies, tile) => armies > acc[1] && tile != data.generals[this.playerIndex] && armies > 1 && data.terrain[tile] == this.playerIndex ? [tile, armies] : acc, [-1, 0])[0];
 			if (max >= 0) {
 				let gather = new Move(max, data.generals[this.playerIndex], "Gathering");
 				console.log(gather.toString());
-				this.objectives.push(gather);
+				this.objectives.push(gather, 2);
 			}
 		}
 
-		if (this.objectives.length != 0) {
-			let result = this.objectives[0].exec(data, this.playerIndex);
+		console.log("objective = " + this.objectives.peek());
+		if (this.objectives.peek() !== undefined) {
+			let objective = this.objectives.peek();
+			let result = objective.exec(data, this.playerIndex);
 			if (!result) {
-				this.objectives.shift();
+				this.objectives.pop();
 			}
+			console.log("result = " + result);
 			return result;
 		}
 	}
@@ -140,7 +139,7 @@ function adjacentTiles(tile, width, height) {
 	const col = tile % width;
 
 	var out = [];
-	if (col < width) {
+	if (col < width - 1) {
 		out.push(tile + 1);
 	}
 	if (col > 0) {
@@ -149,7 +148,7 @@ function adjacentTiles(tile, width, height) {
 	if (row > 0) {
 		out.push(tile - width);
 	}
-	if (row < height) {
+	if (row < height - 1) {
 		out.push(tile + width);
 	}
 	return out;
