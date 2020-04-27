@@ -9,7 +9,7 @@ class State {
 	}
 
 	update(data) {
-		if (!this.start && data.armies[data.generals[this.playerIndex]] >= 6) {
+		if (!this.start && data.armies[data.generals[this.playerIndex]] >= 15) {
 			this.start = true;
 		}
 
@@ -18,7 +18,7 @@ class State {
 		for (var i = 0; i < data.width * data.height; i++) {
 			if (data.terrain[i] == this.playerIndex && data.armies[i] > 1) {
 				let adjacents = adjacentTiles(i, data.width, data.height);
-				let adj = adjacents.find(tile => data.terrain[tile] == TILE_EMPTY && data.armies[tile] == 0);
+				let adj = adjacents.find(tile => (data.terrain[tile] != this.playerIndex && data.terrain[tile] != TILE_MOUNTAIN && data.armies[i] > data.armies[tile]));
 				if (adj !== undefined) {
 					return [i, adj];
 				}
@@ -28,7 +28,7 @@ class State {
 		for (var i = 0; i < data.width * data.height; i++) {
 			if (data.terrain[i] == this.playerIndex && data.armies[i] > 1) {
 				let adjacents = adjacentTiles(i, data.width, data.height);
-				let adj = adjacents.find(tile => (data.terrain[tile] != this.playerIndex && data.terrain[tile] != TILE_MOUNTAIN && data.armies[i] > data.armies[tile]));
+				let adj = adjacents.find(tile => data.terrain[tile] == TILE_EMPTY && data.armies[tile] == 0);
 				if (adj !== undefined) {
 					return [i, adj];
 				}
