@@ -44,7 +44,7 @@ class State {
 				let adjacents = adjacentTiles(i, data.width, data.height);
 				let adj = adjacents.find(tile => (data.cities.indexOf(tile) != -1 && data.armies[data.generals[this.playerIndex]] > data.armies[tile] && data.terrain[tile] != this.playerIndex));
 				if (adj != undefined) {
-					let getCity = new Move(data.generals[this.playerIndex], adj, "Conquering City");
+					let getCity = new Conquest(data.generals[this.playerIndex], adj);
 					console.log(getCity.toString());
 					this.objectives.push(getCity, 1);
 					break;
@@ -55,35 +55,32 @@ class State {
 		if (this.objectives.peek() === undefined) {
 			let max = data.armies.reduce((acc, armies, tile) => armies > acc[1] && tile != data.generals[this.playerIndex] && armies > 1 && data.terrain[tile] == this.playerIndex ? [tile, armies] : acc, [-1, 0])[0];
 			if (max >= 0) {
-				let gather = new Move(max, data.generals[this.playerIndex], "Gathering");
+				let gather = new Move(max, data.generals[this.playerIndex]);
 				console.log(gather.toString());
 				this.objectives.push(gather, 2);
 			}
 		}
 
-		console.log("objective = " + this.objectives.peek());
 		if (this.objectives.peek() !== undefined) {
 			let objective = this.objectives.peek();
 			let result = objective.exec(data, this.playerIndex);
 			if (!result) {
 				this.objectives.pop();
 			}
-			console.log("result = " + result);
 			return result;
 		}
 	}
 }
 
 class Move {
-	constructor(from, to, comment) {
+	constructor(from, to) {
 		this.target = to;
 		this.source = from;
 		this.path = null;
-		this.comment = comment;
 	}
 
 	toString() {
-		return "Move(" + this.source + ", " + this.target + "): " + this.comment;
+		return "Move(" + this.source + ", " + this.target + ")";
 	}
 
 	exec(data, playerIndex) {
@@ -114,7 +111,8 @@ class Move {
 				let list = adjacentTiles(tile, data.width, data.height);
 				tile = list.reduce((acc, tile) => (arr[tile] < acc[1] ? [tile, arr[tile]] : acc), [-1, Infinity])[0];
 				if (tile == -1) {
-					break;
+					// Impossible path
+					return;
 				}
 			}
 			this.path.push(this.target);
@@ -129,6 +127,25 @@ class Move {
 		let move = [this.path[0], this.path[1]];
 		this.path.shift();
 		return move;
+	}
+}
+
+class Conquest {
+	constructor(source, target) {
+		this.source = source;
+		this.target = target;
+		this.move = new Move(source, target);
+	}
+
+	toString() {
+		return "Conquest(" + this.source + ", " + this.target + ")";
+	}
+
+	exec(data, playerIndex) {
+		if (data.terrain[this.target] == playerIndex) {
+			return; // conquest succeeded
+		}
+		return this.move.exec(data, playerIndex);
 	}
 }
 
