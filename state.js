@@ -1,74 +1,67 @@
 const FlatQueue = require("flatqueue");
 
+const OBJ_EXPAND = 0;
+const OBJ_COLLECT = 1;
+const OBJ_VAR = 2;
+
 const TILE_EMPTY = -1;
 const TILE_MOUNTAIN  = -2;
 
 class State {
 	constructor(playerIndex) {
 		this.playerIndex = playerIndex;
-		this.objectives = new FlatQueue();
+		this.objectives = null;
 		this.start = false;
+		this.counter = 0;
 	}
 
 	update(data) {
-		if (!this.start && data.armies[data.generals[this.playerIndex]] >= 15) {
+		this.counter++;
+
+		if (this.objectives == null) {
+			this.objectives = [new Expand(), new Collect(data.generals[this.playerIndex])];
+		}
+
+		if (!this.start && data.armies[data.generals[this.playerIndex]] >= 5) {
 			this.start = true;
 		}
 
 		if (!this.start) return;
 
-		// Conquer cities or other players
 		for (var i = 0; i < data.width * data.height; i++) {
 			if (data.terrain[i] == this.playerIndex && data.armies[i] > 1) {
 				let adjacents = adjacentTiles(i, data.width, data.height);
-				let adj = adjacents.find(tile => (data.terrain[tile] != this.playerIndex && data.terrain[tile] != TILE_MOUNTAIN && (data.terrain[tile] != TILE_EMPTY || data.armies[tile] > 0) && data.armies[i] > data.armies[tile] + 1));
-				if (adj !== undefined) {
-					return [i, adj];
-				}
-			}
-		}
-
-		// Expand
-		for (var i = 0; i < data.width * data.height; i++) {
-			if (data.terrain[i] == this.playerIndex && data.armies[i] > 1) {
-				let adjacents = adjacentTiles(i, data.width, data.height);
-				let adj = adjacents.find(tile => data.terrain[tile] == TILE_EMPTY && data.armies[tile] == 0);
-				if (adj !== undefined) {
-					return [i, adj];
-				}
-			}
-		}
-
-		for (var i = 0; i < data.width * data.height; i++) {
-			if (data.terrain[i] == this.playerIndex && data.armies[i] > 1) {
-				let adjacents = adjacentTiles(i, data.width, data.height);
-				let adj = adjacents.find(tile => (data.cities.indexOf(tile) != -1 && data.armies[data.generals[this.playerIndex]] > data.armies[tile] && data.terrain[tile] != this.playerIndex));
+				let adj = adjacents.find(tile => ((data.cities.indexOf(tile) != -1 || (data.terrain[tile] == TILE_EMPTY && data.armies[tile] != 0)) && data.armies[data.generals[this.playerIndex]] > data.armies[tile] + 1 && data.armies[i] <= data.armies[tile] + 1 && data.terrain[tile] != this.playerIndex));
 				if (adj != undefined) {
 					let getCity = new Conquest(data.generals[this.playerIndex], adj);
-					console.log(getCity.toString());
-					this.objectives.push(getCity, 1);
+					this.objectives.push(getCity);
 					break;
 				}
 			}
 		}
 
-		if (this.objectives.length === 0) {
-			let max = data.armies.reduce((acc, armies, tile) => armies > acc[1] && tile != data.generals[this.playerIndex] && armies > 1 && data.terrain[tile] == this.playerIndex ? [tile, armies] : acc, [-1, 0])[0];
-			if (max >= 0) {
-				let gather = new Move(max, data.generals[this.playerIndex]);
-				console.log(gather.toString());
-				this.objectives.push(gather, 2);
-			}
+		let objs = Object.keys(this.objectives).slice(OBJ_VAR);
+		if (this.counter % 500 >= 400) {
+			objs = [OBJ_EXPAND, OBJ_COLLECT].concat(objs);
+		} else {
+			objs = [OBJ_EXPAND].concat(objs.concat([OBJ_COLLECT]));
 		}
 
-		if (this.objectives.length !== 0) {
-			let objective = this.objectives.peek();
-			let result = objective.exec(data, this.playerIndex);
-			if (!result) {
-				this.objectives.pop();
+		objs = objs.filter(x => this.objectives[x] != null);
+
+		console.log(objs);
+
+		for (let obj of objs) {
+			let ret = this.objectives[obj].exec(data, this.playerIndex);
+			if (ret) {
+				return ret;
+			} else {
+				if (obj >= OBJ_VAR) {
+					this.objectives[obj] = null;
+				}
 			}
-			return result;
 		}
+		console.log("");
 	}
 }
 
@@ -146,6 +139,62 @@ class Conquest {
 			return; // conquest succeeded
 		}
 		return this.move.exec(data, playerIndex);
+	}
+}
+
+class Collect {
+	constructor(target) {
+		this.move = null;
+		this.target = target;
+	}
+
+	toString() {
+		return "Collect(" + this.target + ")";
+	}
+
+	exec(data, playerIndex) {
+		if (this.move == null) {
+			let max = data.armies.reduce((acc, armies, tile) => armies > acc[1] && tile != this.target && armies > 1 && data.terrain[tile] == playerIndex ? [tile, armies] : acc, [-1, 0])[0];
+			this.move = new Move(max, this.target);
+		}
+
+		let ret = this.move.exec(data, playerIndex);
+		if (!ret) {
+			this.move = null;
+		}
+		return ret;
+	}
+}
+
+class Expand {
+	constructor() {}
+
+	toString() {
+		return "Expand";
+	}
+
+	exec(data, playerIndex) {
+		for (var i = 0; i < data.width * data.height; i++) {
+			if (data.terrain[i] == playerIndex && data.armies[i] > 1) {
+				let adjacents = adjacentTiles(i, data.width, data.height);
+				let adj = adjacents.find(tile => (data.terrain[tile] != playerIndex && data.terrain[tile] != TILE_MOUNTAIN && (data.terrain[tile] != TILE_EMPTY || data.armies[tile] != 0) && data.armies[i] > data.armies[tile] + 1));
+				if (adj !== undefined) {
+					return [i, adj];
+				}
+			}
+		}
+
+		for (var i = 0; i < data.width * data.height; i++) {
+			if (data.terrain[i] == playerIndex && data.armies[i] > 1) {
+				let adjacents = adjacentTiles(i, data.width, data.height);
+				let adj = adjacents.find(tile => data.terrain[tile] == TILE_EMPTY && data.armies[tile] == 0);
+				if (adj !== undefined) {
+					return [i, adj];
+				}
+			}
+		}
+
+		return undefined;
 	}
 }
 

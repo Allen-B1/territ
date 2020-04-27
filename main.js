@@ -1,5 +1,3 @@
-const username = '[Bot] Terrible v2';
-
 const opt = require('node-getopt').create([
 	["h", "help", "display help"],
 	["", "ffa", "use FFA"],
@@ -61,23 +59,28 @@ socket.on('connect', function() {
 		let args = data.text.trim().split(" ");
 		switch (args[0].toLowerCase()) {
 		case "help":
+			socket.emit("chat_message", room, "Imabot. I'll get back to you in 5 seconds.");
 			const msgs = [
 				"* force - Force start",
-				"* speed [1,2,3,4] - Change game speed",
+				"* speed [1-4] - Change game speed",
 				"* map [MAP] - Change map",
-				"* reset - Remove map"
+				"* reset - Remove map",
+				"* join [1-8] - Join a team"
 			];
 			for (let i = 0; i < msgs.length; i++) {
 				setTimeout(function() {
 					socket.emit("chat_message", room, msgs[i]);
-				}, i * 1000);
+				}, i * 500 + 5000);
 			}
 			break;
+		case "go":
+			socket.emit("chat_message", room, "No.");
+			break;
 		case "hi":
-			socket.emit("chat_message", room, "Hi! I'm a bot. Type `help` for help.");
+			socket.emit("chat_message", room, "Hi! I'm a terrible bot. Type `help` for help.");
 			break;
 		case "test":
-			socket.emit("set_custom_options", opt.options.custom, {map: "Blank", game_speed: 4});
+			socket.emit("set_custom_options", opt.options.custom, {map: "small king of hill", game_speed: 4});
 			socket.emit('set_force_start', opt.options.custom, true);
 			break;
 		case "force":
@@ -91,6 +94,14 @@ socket.on('connect', function() {
 			break;
 		case "reset":
 			socket.emit("set_custom_options", opt.options.custom, {map: null});
+			break;
+		case "join":
+			let team =  args[1] | 0;
+			if (team > 8 || team <= 0) {
+				socket.emit("chat_message", room, "No.");
+				break;
+			}
+			socket.emit("set_custom_team", opt.options.custom, team);
 			break;
 		}
 	});
