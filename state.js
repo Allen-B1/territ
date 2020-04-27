@@ -21,7 +21,7 @@ class State {
 		for (var i = 0; i < data.width * data.height; i++) {
 			if (data.terrain[i] == this.playerIndex && data.armies[i] > 1) {
 				let adjacents = adjacentTiles(i, data.width, data.height);
-				let adj = adjacents.find(tile => (data.terrain[tile] != this.playerIndex && data.terrain[tile] != TILE_MOUNTAIN && data.armies[i] > data.armies[tile]));
+				let adj = adjacents.find(tile => (data.terrain[tile] != this.playerIndex && data.terrain[tile] != TILE_MOUNTAIN && (data.terrain[tile] != TILE_EMPTY || data.armies[tile] > 0) && data.armies[i] > data.armies[tile] + 1));
 				if (adj !== undefined) {
 					return [i, adj];
 				}
@@ -52,7 +52,7 @@ class State {
 			}
 		}
 
-		if (this.objectives.peek() === undefined) {
+		if (this.objectives.length === 0) {
 			let max = data.armies.reduce((acc, armies, tile) => armies > acc[1] && tile != data.generals[this.playerIndex] && armies > 1 && data.terrain[tile] == this.playerIndex ? [tile, armies] : acc, [-1, 0])[0];
 			if (max >= 0) {
 				let gather = new Move(max, data.generals[this.playerIndex]);
@@ -61,7 +61,7 @@ class State {
 			}
 		}
 
-		if (this.objectives.peek() !== undefined) {
+		if (this.objectives.length !== 0) {
 			let objective = this.objectives.peek();
 			let result = objective.exec(data, this.playerIndex);
 			if (!result) {
