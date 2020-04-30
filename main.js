@@ -134,7 +134,7 @@ socket.on('connect', function() {
 		console.log("\tReplay: " + replay_url);
 	});
 
-	socket.on('game_update', function(data) {
+	socket.on('game_update', function(data) {	
 		cities = patch(cities, data.cities_diff);
 		map = patch(map, data.map_diff);
 
@@ -145,6 +145,7 @@ socket.on('connect', function() {
 		var terrain = map.slice(size + 2, size + 2 + size);
 
 		var move = state_.update({
+			turn: data.turn,
 			width: width, height: height,
 			armies: armies,
 			terrain: terrain,
