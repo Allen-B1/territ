@@ -39,7 +39,7 @@ socket.on('connect', function() {
 
 		setTimeout(function() {
 			socket.emit("make_custom_public", opt.options.custom);
-			socket.emit("set_custom_options", opt.options.custom, {map: "Blank", game_speed: 2});
+			socket.emit("set_custom_options", opt.options.custom, {map: "Map", game_speed: 2});
 		}, 1000);
 	} else if (opt.options["1v1"]) {
 		console.log("Joined: " + website + " 1v1");
@@ -74,10 +74,14 @@ socket.on('connect', function() {
 			}
 			break;
 		case "go":
-			socket.emit("chat_message", room, "No.");
+			socket.emit("chat_message", room, "Force me.");
 			break;
 		case "hi":
+		case "hello":
 			socket.emit("chat_message", room, "Hi! I'm a terrible bot. Type `help` for help.");
+			break;
+		case "die":
+			socket.emit("chat_message", room, "No.");
 			break;
 		case "test":
 			socket.emit("set_custom_options", opt.options.custom, {map: "small king of hill", game_speed: 4});
@@ -102,6 +106,22 @@ socket.on('connect', function() {
 				break;
 			}
 			socket.emit("set_custom_team", opt.options.custom, team);
+			break;
+
+		// Shell utilities
+		case "echo":
+			socket.emit("chat_message", room, args.slice(1).join(" "));
+			break;
+		case "expr":
+			if (args.length == 2) {
+				socket.emit("chat_message", room, args[1]);
+			} else if (args.length == 4) {
+				if (args[2] == "+" || args[2] == "-" || args[2] == "*" || args[2] == "/" || args[2] == "%") {
+					socket.emit("chat_message", room, eval((args[1]|0) + args[2] + (args[3]|0)));
+				}
+			} else {
+				socket.emit("chat_message", room, "expr: invalid syntax");
+			}
 			break;
 		}
 	});

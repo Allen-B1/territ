@@ -49,7 +49,7 @@ class State {
 
 		objs = objs.filter(x => this.objectives[x] != null);
 
-		console.log(objs);
+		console.log("Objectives = " + objs.join(","));
 
 		for (let obj of objs) {
 			let ret = this.objectives[obj].exec(data, this.playerIndex);
@@ -61,7 +61,6 @@ class State {
 				}
 			}
 		}
-		console.log("");
 	}
 }
 
@@ -177,7 +176,21 @@ class Expand {
 		for (var i = 0; i < data.width * data.height; i++) {
 			if (data.terrain[i] == playerIndex && data.armies[i] > 1) {
 				let adjacents = adjacentTiles(i, data.width, data.height);
-				let adj = adjacents.find(tile => (data.terrain[tile] != playerIndex && data.terrain[tile] != TILE_MOUNTAIN && (data.terrain[tile] != TILE_EMPTY || data.armies[tile] != 0) && data.armies[i] > data.armies[tile] + 1));
+				let adj = adjacents.find(tile => (data.terrain[tile] != playerIndex && 
+					data.generals.indexOf(tile) !== -1 && data.armies[i] > data.armies[tile] + 1));
+				if (adj !== undefined) {
+					return [i, adj];
+				}
+			}
+		}
+
+		for (var i = 0; i < data.width * data.height; i++) {
+			if (data.terrain[i] == playerIndex && data.armies[i] > 1) {
+				let adjacents = adjacentTiles(i, data.width, data.height);
+				let adj = adjacents.find(tile => (data.terrain[tile] != playerIndex &&
+						data.terrain[tile] != TILE_MOUNTAIN && 
+						(data.terrain[tile] != TILE_EMPTY || data.armies[tile] != 0) &&
+						 data.armies[i] > data.armies[tile] + 1));
 				if (adj !== undefined) {
 					return [i, adj];
 				}
