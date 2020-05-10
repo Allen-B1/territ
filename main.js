@@ -59,7 +59,7 @@ socket.on('connect', function() {
 		let args = data.text.trim().split(" ");
 		switch (args[0].toLowerCase()) {
 		case "help":
-			socket.emit("chat_message", room, "Imabot. I'll get back to you in 5 seconds.");
+			socket.emit("chat_message", room, "I'll get back to you in 5 seconds.");
 			const msgs = [
 				"* force - Force start",
 				"* speed [1-4] - Change game speed",
@@ -78,7 +78,7 @@ socket.on('connect', function() {
 			break;
 		case "hi":
 		case "hello":
-			socket.emit("chat_message", room, "Hi! I'm a terrible bot. Type `help` for help.");
+			socket.emit("chat_message", room, "Hi! Imabot. Say 'help' for a list of commands.");
 			break;
 		case "die":
 			socket.emit("chat_message", room, "No.");
@@ -109,10 +109,15 @@ socket.on('connect', function() {
 			break;
 
 		// Shell utilities
-		case "echo":
+		case "say":
 			socket.emit("chat_message", room, args.slice(1).join(" "));
 			break;
-		case "expr":
+		case "who":
+			if (args[1].toLowerCase() == "are" && args[2].toLowerCase() == "you") {
+				socket.emit("chat_message", room, "imabot");
+			}
+			break;
+		case "simplify":
 			if (args.length == 2) {
 				socket.emit("chat_message", room, args[1]);
 			} else if (args.length == 4) {
@@ -126,7 +131,10 @@ socket.on('connect', function() {
 		}
 	});
 
+	let swamps = [];
+
 	socket.on('game_start', function(data) {
+		swamps = data.swamps;
 		state_ = new state.State(data.playerIndex);
 		var replay_url = website + "replays/" + encodeURIComponent(data.replay_id);
 		console.log('Game starting!');
@@ -150,10 +158,11 @@ socket.on('connect', function() {
 			armies: armies,
 			terrain: terrain,
 			cities: cities,
-			generals: data.generals
+			generals: data.generals,
+			swamps: swamps,
 		});
 		if (move)
-			socket.emit("attack", move[0], move[1]);
+			socket.emit("attack", move[0], move[1], move[2]);
 	});
 
 	socket.on('game_won', function(data) {
