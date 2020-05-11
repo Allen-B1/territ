@@ -1,3 +1,6 @@
+const got = require('got');
+const he = require('he');
+
 const opt = require('node-getopt').create([
 	["h", "help", "display help"],
 	["", "ffa", "use FFA"],
@@ -6,6 +9,7 @@ const opt = require('node-getopt').create([
 	["s", "server=ARG", "na, eu, or bot"],
 	["i", "id=ARG", "user id"],
 	["t", "token=ARG", "user token (na & eu only)"],
+	["p", "private", "keep game private"]
 ])
 	.bindHelp()
 	.parseSystem();
@@ -38,7 +42,9 @@ socket.on('connect', function() {
 		console.log("Joined: " + website + "games/" + opt.options.custom);
 
 		setTimeout(function() {
-			socket.emit("make_custom_public", opt.options.custom);
+			if (!opt.options.private) {
+				socket.emit("make_custom_public", opt.options.custom);
+			}
 			socket.emit("set_custom_options", opt.options.custom, {map: "Map", game_speed: 2});
 		}, 1000);
 	} else if (opt.options["1v1"]) {
@@ -117,7 +123,8 @@ socket.on('connect', function() {
 				socket.emit("chat_message", room, "imabot");
 			}
 			break;
-		case "simplify":
+		case "calc":
+		case "calculate":
 			if (args.length == 2) {
 				socket.emit("chat_message", room, args[1]);
 			} else if (args.length == 4) {
@@ -127,6 +134,12 @@ socket.on('connect', function() {
 			} else {
 				socket.emit("chat_message", room, "expr: invalid syntax");
 			}
+			break;
+		case "trivia":
+			let rm = room;
+			got.get("https://opentdb.com/api.php?amount=1&type=boolean", {responseType:"json"}).json().then(function(json) {
+				socket.emit("chat_message", rm, he.decode(json.results[0].question) + (json.results[0].correct_answer == "False" ? " is False." : ""));
+			});
 			break;
 		}
 	});

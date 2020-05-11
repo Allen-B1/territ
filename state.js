@@ -170,7 +170,7 @@ class Conquest {
 			if (data.armies[this.target] >= data.armies[this.source] ||
 				data.armies[this.source] < this.min)
 				return undefined;
-			if (data.armies[this.source] > data.armies[this.source] / 2 && move != undefined)
+			if (data.armies[this.source] > data.armies[this.source] * 2 && data.armies[this.source] > this.min * 2 && move != undefined)
 				move = move.concat(true);
 			this.first = false;
 		}
